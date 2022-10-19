@@ -11,4 +11,4 @@ ARGS+=" -p 8888:8888"
 ARGS+=" -v ${PWD}:/workspace"
 [ "${DATA_DIR}" != "" ] && ARGS+=" -v ${DATA_DIR}:/data"
 
-docker run ${ARGS} muse
+docker run ${ARGS} fobe
