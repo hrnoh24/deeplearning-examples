@@ -1,6 +1,6 @@
 FROM nvcr.io/nvidia/pytorch:22.05-py3
 
-WORKDIR /workspace
+WORKDIR /root
 
 RUN apt-get update
 ADD requirements.txt .
