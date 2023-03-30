@@ -2,8 +2,19 @@ _target_: src.models.nansy.nansy_module.NansyModule
 
 pitch_encoder:
   _target_: src.models.nansy.components.pitch_encoder.PitchEncoder
-  frequency_size: 160
-  hidden_channel: 128
-  init_conv_kernel_size: 7
-  resblock_kernel_size: 3
-  num_f0_probs: 64
+  freq: 160
+  prekernels: 7
+  kernels: 3
+  channels: 128
+  blocks: 2
+  gru: 256
+  hiddens: 256
+  f0_bins: 64
+
+cqt_wrapper:
+  _target_: src.models.nansy.components.cqt.CQTWrapper
+  strides: 256
+  fmin: 32.7
+  bins: 191
+  bins_per_octave: 24
+  sr: 16000
