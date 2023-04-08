@@ -29,3 +29,22 @@ linguistic_encoder:
   kernels: [3, 3, 3, 3, 3, 3, 3, 3, 1, 1]
   leak: 0.01
   dropout: 0.1
+
+# ==================== Timbre related ===========================
+timbre_encoder:
+  _target_: src.models.nansy.components.timbre_encoder.TimbreEncoder
+  in_channels: 80 # TODO: ${feature.n_mel_channels}
+  out_channels: 192
+  channels: 512
+  prekernels: 5
+  scale: 8
+  kernels: 3
+  dilations: [2, 3, 4]
+  bottleneck: 128
+  hiddens: 1536
+  latent: 512
+  timbre: 128
+  tokens: 50
+  heads: 8
+  contents: 323
+  slerp: 0.5
