@@ -1,5 +1,6 @@
 _target_: src.models.nansy.nansy_module.NansyModule
 
+# ==================== Pitch related ======================
 pitch_encoder:
   _target_: src.models.nansy.components.pitch_encoder.PitchEncoder
   freq: 160
@@ -18,3 +19,13 @@ cqt_wrapper:
   bins: 191
   bins_per_octave: 24
   sr: 16000
+
+# ==================== Linguistic related ========================
+linguistic_encoder:
+  _target_: src.models.nansy.components.linguistic_encoder.LinguisticEncoder
+  in_channels: 1024
+  hiddens: 128
+  preconv: 2
+  kernels: [3, 3, 3, 3, 3, 3, 3, 3, 1, 1]
+  leak: 0.01
+  dropout: 0.1
