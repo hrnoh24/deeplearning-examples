@@ -17,12 +17,12 @@ class ResBlock(nn.Module):
     self.conv_layers = nn.Sequential(
         nn.BatchNorm2d(in_channel),
         nn.GELU(),
-        nn.Conv2d(in_channel, out_channel, (1, kernel_size), stride=1, dilation=1, padding="same"),
+        nn.Conv2d(in_channel, out_channel, (kernel_size, 1), stride=1, dilation=1, padding="same"),
         nn.BatchNorm2d(in_channel),
         nn.GELU(),
-        nn.Conv2d(in_channel, out_channel, (1, kernel_size), stride=1, dilation=1, padding="same")
+        nn.Conv2d(in_channel, out_channel, (kernel_size, 1), stride=1, dilation=1, padding="same")
     )
-    self.max_pool = nn.MaxPool2d((3, 1), (2, 1), padding=(1, 0))
+    self.max_pool = nn.MaxPool2d((1, 2))
 
   def forward(self, x: torch.FloatTensor) -> torch.FloatTensor:
     """_summary_
@@ -75,6 +75,7 @@ class PitchEncoder(nn.Module):
 
     self.resblock = nn.Sequential(*[ResBlock(channels, channels, kernels) for _ in range(blocks)])
 
+    # input : freq[160] * channels[128] // (2 * blocks[2])
     self.gru = nn.GRU(freq * channels // (2 * blocks), gru, batch_first=True, bidirectional=True)
     self.proj = nn.Sequential(
       nn.Linear(gru * 2, hiddens * 2),
@@ -96,6 +97,7 @@ class PitchEncoder(nn.Module):
     # [B, C F // 4, N]
     x = self.resblock(x)
     # [B, N, C x F // 4]
+    # 입력의 길이가 4의 배수여야만 정상 작동..
     x = x.permute(0, 3, 1, 2).reshape(bsize, timesteps, -1)
     # [B, N, G x 2]
     x, _ = self.gru(x)
@@ -131,15 +133,19 @@ if __name__=="__main__":
   scope_size = 160
   cqt_center = (n_bins - scope_size) // 2
 
-  wav, sr = sf.read("/root/data/KSS/kss/1/1_0173.wav")
+  # in windows
+  # wav, sr = sf.read("/root/data/KSS/kss/1/1_0173.wav")
+  # in mac
+  wav, sr = sf.read(
+      "/Users/hrnoh/Documents/dev/deeplearning/datasets/KSS/kss/1/1_0173.wav")
   wav = torch.FloatTensor(wav).unsqueeze(0)
   print(wav.shape, sr)
   cqt = cqt_layer(wav)
-  plt.imshow(cqt[0])
-  plt.gca().invert_yaxis()
-  plt.show()
-  plt.savefig("cqt.png")
+  # plt.imshow(cqt[0])
+  # plt.gca().invert_yaxis()
+  # plt.show()
+  # plt.savefig("cqt.png")
   print(cqt.size())
 
-  f0_prob, p_amp, ap_amp = pitch_encoder(cqt[:, cqt_center:cqt_center+scope_size])
+  f0_prob, p_amp, ap_amp = pitch_encoder(cqt[:, cqt_center:cqt_center+scope_size, :48])
   print(f0_prob.size(), p_amp.size(), ap_amp.size())

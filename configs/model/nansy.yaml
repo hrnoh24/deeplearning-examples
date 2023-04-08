@@ -7,7 +7,7 @@ pitch_encoder:
   kernels: 3
   channels: 128
   blocks: 2
-  gru: 256
+  gru: 256 # unknown
   hiddens: 256
   f0_bins: 64
 
