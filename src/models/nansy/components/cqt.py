@@ -29,6 +29,7 @@ class CQTWrapper(nn.Module):
         # , fmax = 2 ** (bins / bins_per_octave) * fmin
         #        = 2 ** (191 / 24) * 32.7
         #        = 8132.89
+        self.bins = bins
         self.cqt = CQT2010v2(
             sr,
             strides,

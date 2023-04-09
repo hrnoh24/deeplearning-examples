@@ -70,6 +70,7 @@ class PitchEncoder(nn.Module):
         f0_bins: size of the output f0-bins.
     """
     super().__init__()
+    self.freq = freq
     self.f0_bins = f0_bins
     self.preconv = nn.Conv2d(1, channels, (prekernels, 1), padding=(prekernels // 2, 0))
 
