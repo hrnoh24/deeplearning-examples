@@ -48,3 +48,15 @@ timbre_encoder:
   heads: 8
   contents: 323
   slerp: 0.5
+
+# ==================== Sample-level Synthesizer ====================
+synthesizer:
+  _target_: src.models.nansy.components.synthesizer.Synthesizer
+  scale: 441
+  sr: 44100
+  channels: 64
+  aux: 128
+  kernels: 3
+  dilation_rate: 2
+  layers: 10
+  cycles: 3
