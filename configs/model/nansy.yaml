@@ -49,6 +49,17 @@ timbre_encoder:
   contents: 323
   slerp: 0.5
 
+# ==================== Frame-level Synthesizer =====================
+frame_synthesizer:
+  _target_: src.models.nansy.components.frame_synthesizer.FrameLevelSynthesizer
+  channels: 128
+  embed: 192
+  kernels: 3
+  dilations: [1, 3, 9, 27, 1, 3, 9, 27]
+  blocks: 2
+  leak: 0.01
+  dropout: 0.1
+
 # ==================== Sample-level Synthesizer ====================
 synthesizer:
   _target_: src.models.nansy.components.synthesizer.Synthesizer
