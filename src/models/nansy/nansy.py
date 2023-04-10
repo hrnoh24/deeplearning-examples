@@ -152,7 +152,7 @@ class Nansy(nn.Module):
       # [B, timbre_global, S]
       timbre_sampled = self.timbre.sample_timbre(contents, timbre_global, timbre_bank)
       # [B, ling_hiddens, S]
-      frame = self.framelevel.forward(ling, timbre_sampled)
+      frame = self.frame_synthesizer.forward(ling, timbre_sampled)
       # [B, T], [B, T]
       return self.synthesizer.forward(pitch, p_amp, ap_amp, frame, noise)
 
@@ -169,9 +169,9 @@ class Nansy(nn.Module):
       features = self.analyze(inputs)
       # [B, T]
       excitation, synth = self.synthesize(
-          features['pitch'],
-          features['p_amp'],
-          features['ap_amp'],
+          features['pitch'][:, :-1], # 길이를 맞추기 위해 f0, p_amp, ap_amp 모두 1씩 줄임
+          features['p_amp'][:, :-1],
+          features['ap_amp'][:, :-1],
           features['ling'],
           features['timbre_global'],
           features['timbre_bank'],
@@ -182,15 +182,20 @@ class Nansy(nn.Module):
 
 
 if __name__ == "__main__":
-  import hydra
-  import omegaconf
-  import pyrootutils
+    import hydra
+    import omegaconf
+    import pyrootutils
 
-  root = pyrootutils.setup_root(__file__, pythonpath=True)
-  cfg = omegaconf.OmegaConf.load(root / "configs" / "model" / "nansy.yaml")
-  nansy = hydra.utils.instantiate(cfg.nansy)
+    root = pyrootutils.setup_root(__file__, pythonpath=True)
+    cfg = omegaconf.OmegaConf.load(root / "configs" / "model" / "nansy.yaml")
+    nansy = hydra.utils.instantiate(cfg.nansy)
 
-  x = torch.rand(4, 16000)
-  analysis_feats = nansy.analyze(x)
-  for k, v in analysis_feats.items():
-    print(f"{k}: {v.size()}")
+    x = torch.rand(2, 24000)
+    # analysis_feats = nansy.analyze(x)
+    # for k, v in analysis_feats.items():
+    #     print(f"{k}: {v.size()}")
+
+    synth, analysis_feats = nansy(x)
+    for k, v in analysis_feats.items():
+        print(f"{k}: {v.size()}")
+    print(f"output: {synth.size()}")

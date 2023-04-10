@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from nnAudio.features.cqt import CQT2010v2
+from nnAudio.features.cqt import CQT2010v2, CQT1992v2
 
 
 class CQTWrapper(nn.Module):
@@ -30,7 +30,7 @@ class CQTWrapper(nn.Module):
         #        = 2 ** (191 / 24) * 32.7
         #        = 8132.89
         self.bins = bins
-        self.cqt = CQT2010v2(
+        self.cqt = CQT1992v2(
             sr,
             strides,
             fmin,
