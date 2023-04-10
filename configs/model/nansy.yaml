@@ -1,4 +1,4 @@
-_target_: src.models.nansy.nansy_module.NansyModule
+_target_: src.models.nansy_module.NansyModule
 
 nansy:
   _target_: src.models.nansy.nansy.Nansy

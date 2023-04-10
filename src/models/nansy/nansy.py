@@ -63,12 +63,13 @@ class Nansy(nn.Module):
         if index is None:
             index = self.cqt_center
         # [B, N, f0_bins], [B, N], [B, N]
+        cqt_scoped = cqt[:, index:index + freq]
         pitch_bins, p_amp, ap_amp = self.pitch.forward(
-            cqt[:, index:index + freq])
+            cqt_scoped)
         # [B, N]
         pitch = (pitch_bins * self.pitch_bins).sum(dim=-1)
         # [B, cqt_bins, N], [B, N]
-        return cqt, pitch, p_amp, ap_amp
+        return cqt_scoped, pitch, p_amp, ap_amp
 
   def analyze_linguistic(self, inputs: torch.Tensor) -> torch.Tensor:
       """Analyze the linguistic informations from inputs.
@@ -185,17 +186,36 @@ if __name__ == "__main__":
     import hydra
     import omegaconf
     import pyrootutils
+    import matplotlib.pyplot as plt
+    import soundfile as sf
 
     root = pyrootutils.setup_root(__file__, pythonpath=True)
     cfg = omegaconf.OmegaConf.load(root / "configs" / "model" / "nansy.yaml")
     nansy = hydra.utils.instantiate(cfg.nansy)
 
-    x = torch.rand(2, 24000)
-    # analysis_feats = nansy.analyze(x)
+    # in windows
+    wav, sr = sf.read("/root/data/KSS/kss/1/1_0173.wav")
+    # in mac
+    # wav, sr = sf.read(
+    #     "/Users/hrnoh/Documents/dev/deeplearning/datasets/KSS/kss/1/1_0173.wav")
+    wav = torch.FloatTensor(wav).unsqueeze(0)
+
+    # x = torch.rand(2, 24000)
+    # synth, analysis_feats = nansy(x)
     # for k, v in analysis_feats.items():
     #     print(f"{k}: {v.size()}")
+    # print(f"output: {synth.size()}")
 
-    synth, analysis_feats = nansy(x)
-    for k, v in analysis_feats.items():
-        print(f"{k}: {v.size()}")
-    print(f"output: {synth.size()}")
+    # CQT Test
+    cqt, pitch, p_amp, ap_amp = nansy.analyze_pitch(wav)
+    plt.imshow(cqt.squeeze(0))
+    plt.gca().invert_yaxis()
+    plt.savefig("cqt_org.png")
+    plt.clf()
+
+    d = 15
+    index = nansy.cqt_center + d # 양수면 pitch가 내려감
+    cqt_shift, _, _, _ = nansy.analyze_pitch(wav, index)
+    plt.imshow(cqt_shift.squeeze(0))
+    plt.gca().invert_yaxis()
+    plt.savefig("cqt_shift.png")
