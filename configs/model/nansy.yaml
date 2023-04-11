@@ -94,3 +94,24 @@ nansy:
     dilation_rate: 2
     layers: 10
     cycles: 3
+
+disc:
+  _target_: src.models.nansy.components.mpd.MultiPeriodDiscriminator
+  channels: [32, 128, 512, 1024]
+  periods: [2, 3, 5, 7, 11]
+  kernels: 5
+  strides: 3
+  postkernels: 3
+  leak: 0.1
+
+optim_g:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.0001
+  weight_decay: 0.0
+
+optim_d:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.0002
+  weight_decay: 0.0

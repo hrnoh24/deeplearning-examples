@@ -24,21 +24,23 @@ class NansyModule(LightningModule):
     def __init__(
         self,
         nansy: torch.nn.Module,
-        optimizer: torch.optim.Optimizer,
-        scheduler: torch.optim.lr_scheduler,
+        disc: torch.nn.Module,
+        optim_g: torch.optim.Optimizer,
+        optim_d: torch.optim.Optimizer,
     ):
         super().__init__()
 
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
-        self.save_hyperparameters(logger=False, ignore=["net"])
+        self.save_hyperparameters(logger=False, ignore=["nansy", "disc"])
 
-        self.net = net
+        self.nansy = nansy
+        self.disc = disc
 
         # loss function
 
     def forward(self, x: torch.Tensor):
-        return self.net(x)
+        return self.nansy(x)
 
     def on_train_start(self):
         # by default lightning executes validation step sanity checks before training starts,
@@ -46,20 +48,19 @@ class NansyModule(LightningModule):
         self.val_acc_best.reset()
 
     def step(self, batch: Any):
-        x, y = batch
-        logits = self.forward(x)
-        loss = self.criterion(logits, y)
-        preds = torch.argmax(logits, dim=1)
-        return loss, preds, y
+        return None
 
-    def training_step(self, batch: Any, batch_idx: int):
+    def training_step(self, batch: Any, batch_idx: int, optimizer_idx: int):
         loss, preds, targets = self.step(batch)
 
+        # train discriminator
+        if optimizer_idx == 0:
+            pass
+        # train generator
+        else:
+            pass
+
         # update and log metrics
-        self.train_loss(loss)
-        self.train_acc(preds, targets)
-        self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("train/acc", self.train_acc, on_step=False, on_epoch=True, prog_bar=True)
 
         # we can return here dict with any tensors
         # and then read it in some callback or in `training_epoch_end()` below
@@ -109,19 +110,9 @@ class NansyModule(LightningModule):
         Examples:
             https://pytorch-lightning.readthedocs.io/en/latest/common/lightning_module.html#configure-optimizers
         """
-        optimizer = self.hparams.optimizer(params=self.parameters())
-        if self.hparams.scheduler is not None:
-            scheduler = self.hparams.scheduler(optimizer=optimizer)
-            return {
-                "optimizer": optimizer,
-                "lr_scheduler": {
-                    "scheduler": scheduler,
-                    "monitor": "val/loss",
-                    "interval": "epoch",
-                    "frequency": 1,
-                },
-            }
-        return {"optimizer": optimizer}
+        optim_g = self.hparams.optim_g(params=self.nansy.parameters())
+        optim_d = self.hparams.optim_d(params=self.disc.parameters())
+        return [optim_g, optim_d]
 
 
 if __name__ == "__main__":
