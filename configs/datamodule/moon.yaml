@@ -1,0 +1,9 @@
+_target_: src.datamodules.moon_datamodule.MoonDataModule
+n_train_steps: 5000
+n_val_steps: 100
+n_train_samples: 512
+n_val_samples: 512
+batch_size: 32
+num_workers: 0
+pin_memory: True
+noise: 0.05
