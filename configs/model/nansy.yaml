@@ -60,14 +60,75 @@ frame_synthesizer:
   leak: 0.01
   dropout: 0.1
 
-# ==================== Sample-level Synthesizer ====================
-synthesizer:
-  _target_: src.models.nansy.components.synthesizer.Synthesizer
-  scale: 441
-  sr: 44100
-  channels: 64
-  aux: 128
-  kernels: 3
-  dilation_rate: 2
-  layers: 10
-  cycles: 3
+  # ==================== Timbre related ===========================
+  melspec:
+    _target_: src.models.nansy.components.melspec.MelSpectrogram
+    strides: 256
+    windows: 1024
+    mel: 80
+    fmin: 0
+    fmax: 8000
+    sr: 16000
+  
+  timbre:
+    _target_: src.models.nansy.components.timbre_encoder.TimbreEncoder
+    in_channels: 80 # TODO: ${feature.n_mel_channels}
+    out_channels: 192
+    channels: 512
+    prekernels: 5
+    scale: 8
+    kernels: 3
+    dilations: [2, 3, 4]
+    bottleneck: 128
+    hiddens: 1536
+    latent: 512
+    timbre: 128
+    tokens: 50
+    heads: 8
+    contents: 323
+    slerp: 0.5
+
+  # ==================== Frame-level Synthesizer =====================
+  frame_synthesizer:
+    _target_: src.models.nansy.components.frame_synthesizer.FrameLevelSynthesizer
+    channels: 128
+    embed: 192
+    kernels: 3
+    dilations: [1, 3, 9, 27, 1, 3, 9, 27]
+    blocks: 2
+    leak: 0.01
+    dropout: 0.1
+
+  # ==================== Sample-level Synthesizer ====================
+  synthesizer:
+    _target_: src.models.nansy.components.synthesizer.Synthesizer
+    scale: 882
+    sr: 44100
+    channels: 64
+    aux: 128
+    kernels: 3
+    dilation_rate: 2
+    layers: 10
+    cycles: 3
+
+disc:
+  _target_: src.models.nansy.components.mpd.MultiPeriodDiscriminator
+  channels: [32, 128, 512, 1024]
+  periods: [2, 3, 5, 7, 11]
+  kernels: 5
+  
+  strides: 3
+  postkernels: 3
+  leak: 0.1
+
+optim_g:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.0001
+  weight_decay: 0.0
+
+optim_d:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.0002
+  weight_decay: 0.0
