@@ -1,6 +1,8 @@
 from typing import Union
 import torch
 from torch import nn
+import torchaudio
+from torchaudio.transforms import Resample
 import numpy as np
 
 class ResBlock(nn.Module):
@@ -22,7 +24,7 @@ class ResBlock(nn.Module):
         nn.GELU(),
         nn.Conv2d(in_channel, out_channel, (kernel_size, 1), stride=1, dilation=1, padding="same")
     )
-    self.max_pool = nn.MaxPool2d((1, 2))
+    self.avg_pool = nn.AvgPool2d((1, 2))
 
   def forward(self, x: torch.FloatTensor) -> torch.FloatTensor:
     """_summary_
@@ -36,7 +38,7 @@ class ResBlock(nn.Module):
     residual = self.shortcut(x)
     outputs = self.conv_layers(x)
 
-    x = self.max_pool(outputs) + self.max_pool(residual)
+    x = self.avg_pool(outputs) + self.avg_pool(residual)
     return x
   
 def exponential_sigmoid(x: torch.Tensor) -> torch.Tensor:
@@ -50,14 +52,14 @@ def exponential_sigmoid(x: torch.Tensor) -> torch.Tensor:
 
 class PitchEncoder(nn.Module):
   def __init__(self, 
-               freq: int,
-               prekernels: int,
-               kernels: int,
-               channels: int,
-               blocks: int,
-               gru: int,
-               hiddens: int,
-               f0_bins: int) -> None:
+               freq: int = 160,
+               prekernels: int = 7,
+               kernels: int = 3,
+               channels: int = 128,
+               blocks: int = 2,
+               gru: int = 256,
+               hiddens: int = 512,
+               f0_bins: int = 64) -> None:
     """Initializer.
     Args:
         freq: the number of the frequency bins.
@@ -119,33 +121,25 @@ if __name__=="__main__":
   
   root = pyrootutils.setup_root(__file__, pythonpath=True)
   cfg = omegaconf.OmegaConf.load(root / "configs" / "model" / "nansy.yaml")
-  pitch_encoder = hydra.utils.instantiate(cfg.pitch_encoder)
-  cqt_layer = hydra.utils.instantiate(cfg.cqt_wrapper)
+  pitch_encoder = hydra.utils.instantiate(cfg.nansy.pitch)
+  cqt_layer = hydra.utils.instantiate(cfg.nansy.cqt)
 
   # cqt related
-  # cqt_layer = CQTWrapper(
-  #   strides=256,
-  #   fmin=32.7,
-  #   bins=191,
-  #   bins_per_octave=24,
-  #   sr=16000
-  # )
   n_bins = 191
   scope_size = 160
   cqt_center = (n_bins - scope_size) // 2
-
-  # in windows
-  # wav, sr = sf.read("/root/data/KSS/kss/1/1_0173.wav")
-  # in mac
-  wav, sr = sf.read(
-      "/Users/hrnoh/Documents/dev/deeplearning/datasets/KSS/kss/1/1_0173.wav")
-  wav = torch.FloatTensor(wav).unsqueeze(0)
-  print(wav.shape, sr)
+  
+  wav, sr = torchaudio.load("data/1/1_0173.wav")
+  if sr != 16000:
+    resample = Resample(orig_freq=sr, new_freq=16000)
+    wav = resample(wav)
+    sr = 16000
+    
   cqt = cqt_layer(wav)
-  # plt.imshow(cqt[0])
-  # plt.gca().invert_yaxis()
-  # plt.show()
-  # plt.savefig("cqt.png")
+  plt.imshow(cqt[0])
+  plt.gca().invert_yaxis()
+  plt.show()
+  plt.savefig("cqt.png")
   print(cqt.size())
 
   f0_prob, p_amp, ap_amp = pitch_encoder(cqt[:, cqt_center:cqt_center+scope_size, :48])
