@@ -9,7 +9,7 @@ class Nansy(nn.Module):
   def __init__(self,
                config,
                cqt,
-               wav2vec2,
+               mms,
                melspec,
                pitch,
                linguistic,
@@ -20,7 +20,7 @@ class Nansy(nn.Module):
     super().__init__()
     self.config = config
     self.cqt = cqt
-    self.wav2vec2 = wav2vec2
+    self.mms = mms
     self.melspec = melspec
     self.pitch = pitch
     self.linguistic = linguistic
@@ -53,11 +53,9 @@ class Nansy(nn.Module):
         # [B, cqt_bins, N(=T / cqt_hop)]
         ## TODO: log-scale or not.
         cqt = self.cqt(inputs)
-        print(cqt.size())
         if cqt.size(2) % 4 != 0:
           padsize = 4 - cqt.size(2) % 4
           cqt = F.pad(cqt, (0, padsize), mode="constant")
-        print(cqt.size())
         # alias
         freq = self.pitch_freq
         if index is None:
@@ -79,9 +77,9 @@ class Nansy(nn.Module):
           [torch.float32; [B, ling_hiddens, S]], linguistic informations.
       """
       # [B, S, w2v2_channels]
-      w2v2 = self.wav2vec2.forward(inputs)
+      mms_feats = self.mms.feats(inputs, layer=9)
       # [B, ling_hiddens, S]
-      return self.linguistic.forward(w2v2.transpose(1, 2))
+      return self.linguistic.forward(mms_feats.transpose(1, 2))
 
   def analyze_timbre(self, inputs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
       """Analyze the timbre informations from inputs.
@@ -187,24 +185,19 @@ if __name__ == "__main__":
     import omegaconf
     import pyrootutils
     import matplotlib.pyplot as plt
-    import soundfile as sf
+    import torchaudio
+    from torchaudio.transforms import Resample
 
     root = pyrootutils.setup_root(__file__, pythonpath=True)
     cfg = omegaconf.OmegaConf.load(root / "configs" / "model" / "nansy.yaml")
     nansy = hydra.utils.instantiate(cfg.nansy)
 
     # in windows
-    wav, sr = sf.read("/root/data/KSS/kss/1/1_0173.wav")
-    # in mac
-    # wav, sr = sf.read(
-    #     "/Users/hrnoh/Documents/dev/deeplearning/datasets/KSS/kss/1/1_0173.wav")
-    wav = torch.FloatTensor(wav).unsqueeze(0)
-
-    # x = torch.rand(2, 24000)
-    # synth, analysis_feats = nansy(x)
-    # for k, v in analysis_feats.items():
-    #     print(f"{k}: {v.size()}")
-    # print(f"output: {synth.size()}")
+    wav, sr = torchaudio.load("data/1/1_0173.wav")
+    if sr != 16000:
+        resample = Resample(orig_freq=sr, new_freq=16000)
+        wav = resample(wav)
+        sr = 16000
 
     # CQT Test
     cqt, pitch, p_amp, ap_amp = nansy.analyze_pitch(wav)

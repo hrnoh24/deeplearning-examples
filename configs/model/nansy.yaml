@@ -29,15 +29,19 @@ nansy:
     f0_bins: 64
 
   # ==================== Linguistic related ========================
-  wav2vec2:
-    _target_: src.models.nansy.components.wav2vec2.Wav2Vec2Wrapper
-    name: null
-    sr: 16000
-    linguistic: null
-
+  # wav2vec2:
+  #   _target_: src.models.nansy.components.wav2vec2.Wav2Vec2Wrapper
+  #   name: null
+  #   sr: 16000
+  #   linguistic: null
+  mms:
+    _target_: src.models.nansy.components.mms_soft.MMS
+    load_pretrained_mms: true
+    mms_ckpt_path: mms_model/pytorch_model.bin
+    
   linguistic:
     _target_: src.models.nansy.components.linguistic_encoder.LinguisticEncoder
-    in_channels: 1024
+    in_channels: 1280
     hiddens: 128
     preconv: 2
     kernels: [3, 3, 3, 3, 3, 3, 3, 3, 1, 1]

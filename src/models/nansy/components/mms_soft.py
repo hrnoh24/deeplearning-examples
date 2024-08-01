@@ -1,24 +1,38 @@
+import os
 import torch
 import torch.nn as nn
-from transformers import Wav2Vec2ForPreTraining
+from transformers import Wav2Vec2ForPreTraining, Wav2Vec2Config
 
 # TODO: 'wav2vec2.encoder.pos_conv_embed.conv.weight_g', 'wav2vec2.encoder.pos_conv_embed.conv.weight_v'
 #      위 두 키에 대해서 읽을 수 있도록 체크포인트 내부의 키를 변경해주어야 함
 class MMS(nn.Module):
     def __init__(self,
                  load_pretrained_mms=True, 
+                 mms_ckpt_path=None,
                  device='cpu',
                  *args, 
                  **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.mms = None
+        self.mms_ckpt_path = mms_ckpt_path
         self.device = device
         
         if load_pretrained_mms: self._load_mms()
         
     def _load_mms(self):
         with torch.no_grad():
-            mms = Wav2Vec2ForPreTraining.from_pretrained("facebook/mms-1b")
+            if self.mms_ckpt_path is None:
+                print("Load mms from facebook/mms-1b")
+                mms = Wav2Vec2ForPreTraining.from_pretrained("facebook/mms-1b")
+            else:
+                print(f"Load mms from {self.mms_ckpt_path}")
+                config_path = os.path.join(os.path.dirname(self.mms_ckpt_path), "config.json")
+                config = Wav2Vec2Config.from_json_file(config_path)
+                mms = Wav2Vec2ForPreTraining(config)
+                state_dict = torch.load(self.mms_ckpt_path, 
+                                        map_location='cpu',
+                                        weights_only=False)
+                mms.load_state_dict(state_dict)
             mms = mms.eval()
             self.mms = mms.to(self.device)
         
@@ -45,11 +59,12 @@ class MMSSoft(MMS):
     def __init__(self, 
                  num_label_embeddings=2000,
                  mms_layer=9,
-                 load_pretrained_mms=True, 
+                 load_pretrained_mms=True,
+                 mms_ckpt_path=None, 
                  device='cpu', 
                  *args, 
                  **kwargs) -> None:
-        super().__init__(load_pretrained_mms, device, *args, **kwargs)
+        super().__init__(load_pretrained_mms, mms_ckpt_path, device, *args, **kwargs)
         self.mms_layer = mms_layer
         self.load_pretrained_mms = load_pretrained_mms
         self.proj = nn.Linear(1280, 256)
